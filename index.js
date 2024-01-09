@@ -58,6 +58,7 @@ const lengthMap = {
   1993: ['A'],
   1996: ['D'],
   2004: ['Z'],
+  2033: ['7'],
   2018: ['w'],
   2035: ['w'],
   2042: ['7'],
@@ -74,9 +75,9 @@ const lengthMap = {
   2198: ['n', 'C'],
   2199: ['C'],
   2200: ['C'],
+  2203 :['7'],
   2201: ['C'],
   2202: ['C'],
-  2203: ['7'],
   2210: ['f'],
   2212: ['7'],
   2246: ['E'],
@@ -124,6 +125,7 @@ const lengthMap = {
   2758: ['2'],
   2800: ['9'],
   2823: ['5'],
+  2848: ['6'],
   2851: ['6'],
   3033: ['9'],
   3038: ['S'],
@@ -144,9 +146,9 @@ const lengthMap = {
   3878: ['3'],
   3968: ['m'],
   4201: ['3'] }
-
-// 相同长度的两个字母，这里详细分析具体是哪个字母
-const lengthSameMap = {
+  
+  // 相同长度的两个字母，这里详细分析具体是哪个字母
+  const lengthSameMap = {
   986: path => utils.getMinXY(path)[1] > 13 ? 'I' : 'l',
   1068: path => utils.getMinXY(path)[1] > 13 ? 'I' : 'l',
   1274: path => utils.getMoveY(path) > 30 ? 'y' : 'L', // L y，根据第一个y值的大小可以区分它俩
@@ -163,103 +165,104 @@ const lengthSameMap = {
   1835: path => utils.getMinXY(path)[1] > 22 ? 'z' : 't',
   2279: path => utils.getMinXY(path)[1] > 13 ? 'R' : 'M'
 }
-
-// 从svg中把几个字母的d内容取出来，同时把字母按照它们在svg中的顺序排列
-const getLetters = (svg) => {
-  let i = 0
-  const letters = []
-  while (i < svg.length - 1 && i !== -1) {
-    const pathStart = svg.indexOf('<path', i)
-    if (pathStart === -1) {
-      break
-    }
-    let pathEnd = svg.indexOf('>', pathStart)
-    if (pathEnd === -1) {
-      pathEnd = svg.length
-    } else {
-      pathEnd++
-    }
-
-    // 太短的是噪点
-    if (pathEnd - pathStart > 500) {
-      const path = svg.substring(pathStart, pathEnd)
-      const [, d] = path.match(/d="([^"]+)"/) || []
-      if (d) {
-        letters.push(d)
+  
+  // 从svg中把几个字母的d内容取出来，同时把字母按照它们在svg中的顺序排列
+  const getLetters = (svg) => {
+    let i = 0
+    const letters = []
+    while (i < svg.length - 1 && i !== -1) {
+      const pathStart = svg.indexOf('<path', i)
+      if (pathStart === -1) {
+        break
       }
+      let pathEnd = svg.indexOf('>', pathStart)
+      if (pathEnd === -1) {
+        pathEnd = svg.length
+      } else {
+        pathEnd++
+      }
+  
+      // 太短的是噪点
+      if (pathEnd - pathStart > 500) {
+        const path = svg.substring(pathStart, pathEnd)
+        const [, d] = path.match(/d="([^"]+)"/) || []
+        if (d) {
+          letters.push(d)
+        }
+      }
+  
+      i = pathEnd
     }
-
-    i = pathEnd
+  
+    // 给字母按照位置排序
+    if (letters.length) {
+      letters.sort((a, b) => {
+        const [ax] = a.match(/\d+(\.\d*)?/)
+        const [bx] = b.match(/\d+(\.\d*)?/)
+        return parseFloat(ax) - parseFloat(bx)
+      })
+    }
+  
+    return letters
   }
-
-  // 给字母按照位置排序
-  if (letters.length) {
-    letters.sort((a, b) => {
-      const [ax] = a.match(/\d+(\.\d*)?/)
-      const [bx] = b.match(/\d+(\.\d*)?/)
-      return parseFloat(ax) - parseFloat(bx)
-    })
+  
+  const utils = {
+    getMoveY (path) {
+      const [,,, moveY] = path.match(/M(\d+(\.\d*)?)\s+(\d+(\.\d*)?)/) || []
+      return parseFloat(moveY)
+    },
+  
+    getAllXY (path) {
+      return (path.match(/(\d+(\.\d*)?)/g) || []).map(v => parseFloat(v))
+    },
+  
+    getMinXY (path) {
+      const xs = []
+      const ys = []
+      this.getAllXY(path).forEach((v, i) => {
+        (i % 2 ? ys : xs).push(v)
+      })
+      return [
+        Math.min(...xs),
+        Math.min(...ys)
+      ]
+    },
+  
+    // 获取宽高
+    getWH (path) {
+      const xs = []
+      const ys = []
+      this.getAllXY(path).forEach((v, i) => {
+        (i % 2 ? ys : xs).push(v)
+      })
+      const maxXY = [
+        Math.max(...xs),
+        Math.max(...ys)
+      ]
+      const minXY = [
+        Math.min(...xs),
+        Math.min(...ys)
+      ]
+      return [
+        maxXY[0] - minXY[0],
+        maxXY[1] - minXY[1]
+      ]
+    }
   }
-
-  return letters
-}
-
-const utils = {
-  getMoveY (path) {
-    const [,,, moveY] = path.match(/M(\d+(\.\d*)?)\s+(\d+(\.\d*)?)/) || []
-    return parseFloat(moveY)
-  },
-
-  getAllXY (path) {
-    return (path.match(/(\d+(\.\d*)?)/g) || []).map(v => parseFloat(v))
-  },
-
-  getMinXY (path) {
-    const xs = []
-    const ys = []
-    this.getAllXY(path).forEach((v, i) => {
-      (i % 2 ? ys : xs).push(v)
-    })
-    return [
-      Math.min(...xs),
-      Math.min(...ys)
-    ]
-  },
-
-  // 获取宽高
-  getWH (path) {
-    const xs = []
-    const ys = []
-    this.getAllXY(path).forEach((v, i) => {
-      (i % 2 ? ys : xs).push(v)
-    })
-    const maxXY = [
-      Math.max(...xs),
-      Math.max(...ys)
-    ]
-    const minXY = [
-      Math.min(...xs),
-      Math.min(...ys)
-    ]
-    return [
-      maxXY[0] - minXY[0],
-      maxXY[1] - minXY[1]
-    ]
+  
+  module.exports = {
+    recognize (svg) {
+      const letters = getLetters(svg)
+      return letters.map(l => {
+        if (lengthSameMap[l.length]) {
+          return lengthSameMap[l.length](l)
+        }
+        const letters = lengthMap[l.length] || ['']
+        if (!letters[0]) { // 这个值没有记录到
+          console.log(`had not train : ${l.length}`)
+        }
+        return letters[0]
+      }).join('')
+    }
   }
-}
-
-module.exports = {
-  recognize (svg) {
-    const letters = getLetters(svg)
-    return letters.map(l => {
-      if (lengthSameMap[l.length]) {
-        return lengthSameMap[l.length](l)
-      }
-      const letters = lengthMap[l.length] || ['']
-      if (!letters[0]) { // 这个值没有记录到
-        console.log(`had not train : ${l}`)
-      }
-      return letters[0]
-    }).join('')
-  }
-}
+  

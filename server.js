@@ -6,11 +6,10 @@ const port = 8888;
 const server = ws.createServer( connect => {
     console.log('====新的连接====');
     connect.on('text', data => {
-        console.log('--receive data---', data);
         try {
             let jsonData = JSON.parse(data);
-            // console.log('---jsonData---', jsonData);
             let code = recognize(jsonData.svg);
+            console.log('识别结果：', code);
             connect.sendText(code);
         } catch(e) {
             console.log('识别code出错--', e);
